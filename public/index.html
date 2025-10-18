@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Portfolio de Liens et Créations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .admin-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .admin-section.show {
+            display: block;
+        }
+
+        .admin-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+            color: #667eea;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .admin-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 1em;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        button.danger {
+            background: #e74c3c;
+        }
+
+        button.danger:hover {
+            background: #c0392b;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .category-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .category-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .category-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .category-description {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .links-container {
+            padding: 20px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+            text-decoration: none;
+            color: #333;
+            border-left: 4px solid #667eea;
+        }
+
+        .link-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .link-item.admin-mode {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .link-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            margin-right: 15px;
+            object-fit: cover;
+            background: #ddd;
+        }
+
+        .link-content {
+            flex: 1;
+        }
+
+        .link-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .link-description {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .link-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .link-actions button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .close-modal {
+            float: right;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-toggle {
+                padding: 10px 15px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌟 Mon Portfolio</h1>
+            <p>Découvrez tous mes liens et créations</p>
+        </header>
+
+        <div class="categories-grid" id="categoriesContainer">
+            <!-- Les catégories seront chargées ici -->
+        </div>
+    </div>
+
+    <button class="admin-toggle" id="adminToggle">⚙️ Admin</button>
+
+    <div class="admin-section" id="adminSection">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="categories">Catégories</button>
+            <button class="tab-button" data-tab="links">Liens</button>
+        </div>
+
+        <div id="categories" class="tab-content active">
+            <h2>Gérer les catégories</h2>
+            <div class="success-message" id="categorySuccess"></div>
+
+            <h3 style="margin-top: 20px; margin-bottom: 15px;">Ajouter une nouvelle catégorie</h3>
+            <form id="addCategoryForm">
+                <div class="form-group">
+                    <label for="categoryName">Nom de la catégorie</label>
+                    <input type="text" id="categoryName" required>
+                </div>
+                <div class="form-group">
+                    <label for="categoryDescription">Description</label>
+                    <textarea id="categoryDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="categoryIcon">Icône (emoji)</label>
+                    <input type="text" id="categoryIcon" placeholder="📱" maxlength="2">
+                </div>
+                <button type="submit">Ajouter la catégorie</button>
+            </form>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">Catégories existantes</h3>
+            <div id="categoriesList"></div>
+        </div>
+
+        <div id="links" class="tab-content">
+            <h2>Gérer les liens</h2>
+            <div class="success-message" id="linkSuccess"></div>
+
+            <h3 style="margin-top: 20px; margin-bottom: 15px;">Ajouter un nouveau lien</h3>
+            <form id="addLinkForm">
+                <div class="form-group">
+                    <label for="linkCategory">Catégorie</label>
+                    <select id="linkCategory" required>
+                        <option value="">Sélectionnez une catégorie</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="linkTitle">Titre du lien</label>
+                    <input type="text" id="linkTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="linkUrl">URL</label>
+                    <input type="url" id="linkUrl" required>
+                </div>
+                <div class="form-group">
+                    <label for="linkDescription">Description</label>
+                    <textarea id="linkDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="linkImageUrl">URL de l'image</label>
+                    <input type="url" id="linkImageUrl">
+                </div>
+                <button type="submit">Ajouter le lien</button>
+            </form>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">Liens existants</h3>
+            <div id="linksList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let adminMode = false;
+
+        // Éléments du DOM
+        const adminToggle = document.getElementById('adminToggle');
+        const adminSection = document.getElementById('adminSection');
+        const categoriesContainer = document.getElementById('categoriesContainer');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Événements
+        adminToggle.addEventListener('click', toggleAdminMode);
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+        });
+
+        document.getElementById('addCategoryForm').addEventListener('submit', addCategory);
+        document.getElementById('addLinkForm').addEventListener('submit', addLink);
+
+        // Fonctions principales
+        function toggleAdminMode() {
+            adminMode = !adminMode;
+            adminSection.classList.toggle('show');
+            if (adminMode) {
+                loadAdminData();
+            }
+        }
+
+        function switchTab(tabName) {
+            tabContents.forEach(content => content.classList.remove('active'));
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const categories = await response.json();
+                displayCategories(categories);
+            } catch (error) {
+                console.error('Erreur lors du chargement des catégories:', error);
+            }
+        }
+
+        function displayCategories(categories) {
+            if (categories.length === 0) {
+                categoriesContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>Aucune catégorie pour le moment</p></div>';
+                return;
+            }
+
+            categoriesContainer.innerHTML = categories.map(category => `
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon">${category.icon}</div>
+                        <div class="category-title">${category.name}</div>
+                        <div class="category-description">${category.description}</div>
+                    </div>
+                    <div class="links-container">
+                        ${category.links && category.links.length > 0 ? 
+                            category.links.map(link => `
+                                <a href="${link.url}" target="_blank" class="link-item">
+                                    ${link.image_url ? `<img src="${link.image_url}" alt="${link.title}" class="link-image">` : ''}
+                                    <div class="link-content">
+                                        <div class="link-title">${link.title}</div>
+                                        ${link.description ? `<div class="link-description">${link.description}</div>` : ''}
+                                    </div>
+                                </a>
+                            `).join('')
+                            : '<div class="empty-state"><p>Aucun lien dans cette catégorie</p></div>'
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadAdminData() {
+            await loadCategories();
+            await loadCategoriesForSelect();
+            await loadCategoriesAdmin();
+            await loadLinksAdmin();
+        }
+
+        async function loadCategoriesForSelect() {
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const categories = await response.json();
+                const select = document.getElementById('linkCategory');
+                select.innerHTML = '<option value="">Sélectionnez une catégorie</option>' +
+                    categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function loadCategoriesAdmin() {
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const categories = await response.json();
+                const list = document.getElementById('categoriesList');
+
+                list.innerHTML = categories.map(cat => `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${cat.icon} ${cat.name}</strong>
+                                <p style="color: #666; margin: 5px 0 0 0;">${cat.description}</p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="editCategory(${cat.id})" style="background: #17a2b8;">Éditer</button>
+                                <button onclick="deleteCategory(${cat.id})" class="danger">Supprimer</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function loadLinksAdmin() {
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const categories = await response.json();
+                const list = document.getElementById('linksList');
+
+                let html = '';
+                categories.forEach(cat => {
+                    if (cat.links && cat.links.length > 0) {
+                        html += `<h4 style="margin-top: 15px; color: #667eea;">${cat.icon} ${cat.name}</h4>`;
+                        cat.links.forEach(link => {
+                            html += `
+                                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <strong>${link.title}</strong>
+                                            <p style="color: #666; margin: 5px 0 0 0;">${link.url}</p>
+                                            ${link.description ? `<p style="color: #999; margin: 5px 0 0 0; font-size: 0.9em;">${link.description}</p>` : ''}
+                                        </div>
+                                        <div style="display: flex; gap: 10px;">
+                                            <button onclick="editLink(${link.id})" style="background: #17a2b8;">Éditer</button>
+                                            <button onclick="deleteLink(${link.id})" class="danger">Supprimer</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                });
+
+                list.innerHTML = html || '<p style="color: #999;">Aucun lien pour le moment</p>';
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function addCategory(e) {
+            e.preventDefault();
+            const name = document.getElementById('categoryName').value;
+            const description = document.getElementById('categoryDescription').value;
+            const icon = document.getElementById('categoryIcon').value || '📁';
+
+            try {
+                const response = await fetch(`${API_BASE}/categories`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description, icon })
+                });
+
+                if (response.ok) {
+                    showSuccess('categorySuccess', 'Catégorie ajoutée avec succès!');
+                    document.getElementById('addCategoryForm').reset();
+                    await loadAdminData();
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function addLink(e) {
+            e.preventDefault();
+            const category_id = document.getElementById('linkCategory').value;
+            const title = document.getElementById('linkTitle').value;
+            const url = document.getElementById('linkUrl').value;
+            const description = document.getElementById('linkDescription').value;
+            const image_url = document.getElementById('linkImageUrl').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/links`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category_id: parseInt(category_id), title, url, description, image_url })
+                });
+
+                if (response.ok) {
+                    showSuccess('linkSuccess', 'Lien ajouté avec succès!');
+                    document.getElementById('addLinkForm').reset();
+                    await loadAdminData();
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette catégorie?')) {
+                try {
+                    await fetch(`${API_BASE}/categories/${id}`, { method: 'DELETE' });
+                    await loadAdminData();
+                } catch (error) {
+                    console.error('Erreur:', error);
+                }
+            }
+        }
+
+        async function deleteLink(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce lien?')) {
+                try {
+                    await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
+                    await loadAdminData();
+                } catch (error) {
+                    console.error('Erreur:', error);
+                }
+            }
+        }
+
+        function editCategory(id) {
+            alert('Fonctionnalité d\'édition en cours de développement');
+        }
+
+        function editLink(id) {
+            alert('Fonctionnalité d\'édition en cours de développement');
+        }
+
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.add('show');
+            setTimeout(() => element.classList.remove('show'), 3000);
+        }
+
+        // Charger les catégories au démarrage
+        loadCategories();
+    </script>
+</body>
+</html>
+
