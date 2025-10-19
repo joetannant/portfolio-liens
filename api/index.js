@@ -2,8 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Database from 'better-sqlite3';
-import fs from 'fs';
+import { createClient } from '@libsql/client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,21 +16,17 @@ app.use(express.json());
 // Servir les fichiers statiques
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Initialiser la base de données dans /tmp
-const dbPath = path.join('/tmp', 'portfolio.db');
+// Initialiser le client Turso
+const db = createClient({
+  url: 'libsql://portef1-joetannant.aws-us-east-1.turso.io',
+  authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjA4OTM5ODAsImlkIjoiYmNlNmE3NjYtNDgxMy00NjcxLThlMzMtNTM3OGRmZTNkMDgzIiwicmlkIjoiNzNkZjQzYWQtYzEwYi00NjgwLTgzNDktNzliNmY1NmYwNDMwIn0.PMrCcdCnZzJFVN-ZYIPobUTac910Se9UK-YJlCyokwTXgFgSXfi7lUdLENHIkLq-ka-KyQeP9tFG0tOTDK_uAQ'
+});
 
-let db;
-try {
-  db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
-  initializeDatabase();
-} catch (error) {
-  console.error('Erreur de base de données:', error);
-}
-
-function initializeDatabase() {
+// Initialiser la base de données
+async function initializeDatabase() {
   try {
-    db.exec(`
+    // Créer les tables si elles n'existent pas
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
@@ -40,7 +35,9 @@ function initializeDatabase() {
         order_index INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+    `);
 
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS links (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         category_id INTEGER NOT NULL,
@@ -55,41 +52,51 @@ function initializeDatabase() {
       );
     `);
 
-    const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get();
-    if (categoryCount.count === 0) {
+    // Vérifier si les catégories par défaut existent
+    const result = await db.execute('SELECT COUNT(*) as count FROM categories');
+    const categoryCount = result.rows[0]?.count || 0;
+
+    if (categoryCount === 0) {
       const defaultCategories = [
         { name: 'Médias Sociaux', description: 'Mes profils sur les réseaux sociaux', icon: '📱', order_index: 1 },
         { name: 'Affiliations', description: 'Mes liens d\'affiliation', icon: '🔗', order_index: 2 },
         { name: 'Créations POD', description: 'Mes produits Print-on-Demand', icon: '🎨', order_index: 3 }
       ];
 
-      const insertCategory = db.prepare(`
-        INSERT INTO categories (name, description, icon, order_index)
-        VALUES (?, ?, ?, ?)
-      `);
-
-      defaultCategories.forEach(cat => {
-        insertCategory.run(cat.name, cat.description, cat.icon, cat.order_index);
-      });
+      for (const cat of defaultCategories) {
+        await db.execute(
+          'INSERT INTO categories (name, description, icon, order_index) VALUES (?, ?, ?, ?)',
+          [cat.name, cat.description, cat.icon, cat.order_index]
+        );
+      }
     }
+
+    console.log('Base de données initialisée avec succès');
   } catch (error) {
     console.error('Erreur lors de l\'initialisation:', error);
   }
 }
 
-// Routes API
-app.get('/api/categories', (req, res) => {
-  try {
-    const categories = db.prepare(`
-      SELECT * FROM categories ORDER BY order_index ASC
-    `).all();
+// Initialiser la base de données au démarrage
+initializeDatabase();
 
-    const result = categories.map(cat => {
-      const links = db.prepare(`
-        SELECT * FROM links WHERE category_id = ? AND active = 1 ORDER BY order_index ASC
-      `).all(cat.id);
-      return { ...cat, links };
-    });
+// Routes API
+
+// Récupérer toutes les catégories avec leurs liens
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categoriesResult = await db.execute('SELECT * FROM categories ORDER BY order_index ASC');
+    const categories = categoriesResult.rows || [];
+
+    const result = [];
+    for (const cat of categories) {
+      const linksResult = await db.execute(
+        'SELECT * FROM links WHERE category_id = ? AND active = 1 ORDER BY order_index ASC',
+        [cat.id]
+      );
+      const links = linksResult.rows || [];
+      result.push({ ...cat, links });
+    }
 
     res.json(result);
   } catch (error) {
@@ -98,20 +105,22 @@ app.get('/api/categories', (req, res) => {
   }
 });
 
-app.post('/api/categories', (req, res) => {
+// Créer une nouvelle catégorie
+app.post('/api/categories', async (req, res) => {
   try {
     const { name, description, icon } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Le nom est requis' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(order_index) as max FROM categories').get();
-    const newOrder = (maxOrder.max || 0) + 1;
+    const maxResult = await db.execute('SELECT MAX(order_index) as max FROM categories');
+    const maxOrder = maxResult.rows[0]?.max || 0;
+    const newOrder = maxOrder + 1;
 
-    const result = db.prepare(`
-      INSERT INTO categories (name, description, icon, order_index)
-      VALUES (?, ?, ?, ?)
-    `).run(name, description || '', icon || '📁', newOrder);
+    const result = await db.execute(
+      'INSERT INTO categories (name, description, icon, order_index) VALUES (?, ?, ?, ?)',
+      [name, description || '', icon || '📁', newOrder]
+    );
 
     res.json({ id: result.lastInsertRowid, name, description, icon, order_index: newOrder });
   } catch (error) {
@@ -120,14 +129,15 @@ app.post('/api/categories', (req, res) => {
   }
 });
 
-app.delete('/api/categories/:id', (req, res) => {
+// Supprimer une catégorie
+app.delete('/api/categories/:id', async (req, res) => {
   try {
-    const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id);
-    if (!category) {
+    const categoryResult = await db.execute('SELECT * FROM categories WHERE id = ?', [req.params.id]);
+    if (!categoryResult.rows || categoryResult.rows.length === 0) {
       return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
 
-    db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
+    await db.execute('DELETE FROM categories WHERE id = ?', [req.params.id]);
     res.json({ message: 'Catégorie supprimée' });
   } catch (error) {
     console.error('Erreur:', error);
@@ -135,7 +145,8 @@ app.delete('/api/categories/:id', (req, res) => {
   }
 });
 
-app.post('/api/links', (req, res) => {
+// Créer un nouveau lien
+app.post('/api/links', async (req, res) => {
   try {
     const { category_id, title, url, description, image_url } = req.body;
 
@@ -143,18 +154,19 @@ app.post('/api/links', (req, res) => {
       return res.status(400).json({ error: 'Les champs requis sont manquants' });
     }
 
-    const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(category_id);
-    if (!category) {
+    const categoryResult = await db.execute('SELECT * FROM categories WHERE id = ?', [category_id]);
+    if (!categoryResult.rows || categoryResult.rows.length === 0) {
       return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(order_index) as max FROM links WHERE category_id = ?').get(category_id);
-    const newOrder = (maxOrder.max || 0) + 1;
+    const maxResult = await db.execute('SELECT MAX(order_index) as max FROM links WHERE category_id = ?', [category_id]);
+    const maxOrder = maxResult.rows[0]?.max || 0;
+    const newOrder = maxOrder + 1;
 
-    const result = db.prepare(`
-      INSERT INTO links (category_id, title, url, description, image_url, order_index)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(category_id, title, url, description || '', image_url || '', newOrder);
+    const result = await db.execute(
+      'INSERT INTO links (category_id, title, url, description, image_url, order_index) VALUES (?, ?, ?, ?, ?, ?)',
+      [category_id, title, url, description || '', image_url || '', newOrder]
+    );
 
     res.json({
       id: result.lastInsertRowid,
@@ -172,14 +184,15 @@ app.post('/api/links', (req, res) => {
   }
 });
 
-app.delete('/api/links/:id', (req, res) => {
+// Supprimer un lien
+app.delete('/api/links/:id', async (req, res) => {
   try {
-    const link = db.prepare('SELECT * FROM links WHERE id = ?').get(req.params.id);
-    if (!link) {
+    const linkResult = await db.execute('SELECT * FROM links WHERE id = ?', [req.params.id]);
+    if (!linkResult.rows || linkResult.rows.length === 0) {
       return res.status(404).json({ error: 'Lien non trouvé' });
     }
 
-    db.prepare('DELETE FROM links WHERE id = ?').run(req.params.id);
+    await db.execute('DELETE FROM links WHERE id = ?', [req.params.id]);
     res.json({ message: 'Lien supprimé' });
   } catch (error) {
     console.error('Erreur:', error);
