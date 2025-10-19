@@ -5,9 +5,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node api/server.js",
+    "build": "echo 'Build complete'"
   },
   "keywords": [
     "portfolio",
@@ -16,15 +15,13 @@
   ],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.18.3",
   "dependencies": {
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "sqlite3": "^5.1.7"
+    "express": "^4.18.2"
   },
-  "devDependencies": {
-    "nodemon": "^3.1.10"
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
